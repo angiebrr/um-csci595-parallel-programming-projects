@@ -1,0 +1,82 @@
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 5000, simulation time = 0.739829 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 5000, simulation time = 0.582805 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 5000, simulation time = 0.493418 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 5000, simulation time = 0.45133 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 5000, simulation time = 0.458495 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 5000, simulation time = 0.325821 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 10000, simulation time = 0.995051 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 20000, simulation time = 1.74085 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 40000, simulation time = 3.13385 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+n = 80000, simulation time = 5.9207 seconds
+ 
+TACC: Shutdown complete. Exiting.
+TACC: Starting up job 5012959
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+
+Strong scaling estimates are :
+    1.27    1.50    1.64    1.61    2.27 (speedup)
+    1.27    0.75    0.41    0.20    0.14 (efficiency)    for
+       1       2       4       8      16 threads/processors
+
+Average strong scaling efficiency:    0.55 
+
+Weak scaling estimates are :
+    1.27    0.74    0.42    0.24    0.12 (efficiency)    for
+       1       2       4       8      16 threads/processors
+
+Average weak scaling efficiency:    0.56 
+
+
+mpi Grade =   79.76
+
+ 
+TACC: Shutdown complete. Exiting.

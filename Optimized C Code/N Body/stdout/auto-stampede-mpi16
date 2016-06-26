@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH -A TG-CCR140008
+#SBATCH -J auto-particle-mpi16
+#SBATCH -o auto-particle-mpi16.stdout
+#SBATCH -N 16 -n 16         
+#SBATCH -p normal
+#SBATCH -t 00:10:00     
+
+rm mpi_sum.txt
+ibrun -n 1 -o 0 ./serial -n 5000 -no -s mpi_sum.txt
+ibrun -n 1 -o 0 ./mpi -n 5000 -no -s mpi_sum.txt
+ibrun -n 2 -o 0 ./mpi -n 5000 -no -s mpi_sum.txt
+ibrun -n 4 -o 0 ./mpi -n 5000 -no -s mpi_sum.txt
+ibrun -n 8 -o 0 ./mpi -n 5000 -no -s mpi_sum.txt
+ibrun -n 16 -o 0 ./mpi -n 5000 -no -s mpi_sum.txt
+ibrun -n 2 -o 0 ./mpi -n 10000 -no -s mpi_sum.txt
+ibrun -n 4 -o 0 ./mpi -n 20000 -no -s mpi_sum.txt
+ibrun -n 8 -o 0 ./mpi -n 40000 -no -s mpi_sum.txt
+ibrun -n 16 -o 0 ./mpi -n 80000 -no -s mpi_sum.txt
+ibrun -n 1 -o 0 ./autograder -v mpi -s mpi_sum.txt

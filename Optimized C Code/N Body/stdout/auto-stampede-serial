@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH -A TG-CCR140008
+#SBATCH -J auto-particle-serial
+#SBATCH -o auto-particle-serial.stdout
+#SBATCH -n 1         
+#SBATCH -p normal
+#SBATCH -t 00:10:00
+     
+rm serial_sum.txt
+./serial -n 500 -no -s serial_sum.txt
+./serial -n 1000 -no -s serial_sum.txt
+./serial -n 2000 -no -s serial_sum.txt
+./serial -n 4000 -no -s serial_sum.txt
+./serial -n 8000 -no -s serial_sum.txt
+./autograder -v serial -s serial_sum.txt
+

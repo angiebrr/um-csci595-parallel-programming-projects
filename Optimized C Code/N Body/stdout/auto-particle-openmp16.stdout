@@ -1,0 +1,27 @@
+n = 5000, simulation time = 0.742243 seconds
+n = 5000,threads = 1, simulation time = 0.465573 seconds
+n = 5000,threads = 2, simulation time = 0.541029 seconds
+n = 5000,threads = 4, simulation time = 0.283693 seconds
+n = 5000,threads = 8, simulation time = 0.146827 seconds
+n = 5000,threads = 16, simulation time = 0.389091 seconds
+n = 10000,threads = 2, simulation time = 1.13281 seconds
+n = 20000,threads = 4, simulation time = 1.19961 seconds
+n = 40000,threads = 8, simulation time = 1.1629 seconds
+n = 80000,threads = 16, simulation time = 2.8414 seconds
+
+Strong scaling estimates are :
+    1.59    1.37    2.62    5.06    1.91 (speedup)
+    1.59    0.69    0.65    0.63    0.12 (efficiency)    for
+       1       2       4       8      16 threads/processors
+
+Average strong scaling efficiency:    0.74 
+
+Weak scaling estimates are :
+    1.59    0.66    0.62    0.64    0.26 (efficiency)    for
+       1       2       4       8      16 threads/processors
+
+Average weak scaling efficiency:    0.75 
+
+
+openmp Grade =   95.44
+

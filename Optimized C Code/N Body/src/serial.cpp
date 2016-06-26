@@ -1,0 +1,259 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <math.h>
+#include <vector>
+#include <list>
+#include "common.h"
+
+// ===================================================================================================================
+// serial.cpp
+// -------------------------------------------------------------------------------------------------------------------
+// Angela Gross
+// CSCI-595: Parallel Programming
+// Spring 2015
+// -------------------------------------------------------------------------------------------------------------------
+// Uses a simple method of binning to efficiently apply forces to an N-body simulation, or the method that divides the
+// world into bins and uses only the particles in surrounding bins to apply forces to each particle in a given bin.
+//
+// In this iteration, the bins are vectors of lists and are reset every iteration, a check is being done
+// if the current particle is itself for every force computation, it is iterating over bins instead of particles, and
+// the bins aren't being looped over in contiguous memory. 
+//
+// Although some purposeful inefficiencies are present, the implementation still uses binning and has a slope estimate
+// of 1.189.
+// ===================================================================================================================
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// MACRO AND VARIABLES FOR BINS (0,0 is bottom left corner)
+#define B(x, y) bins[(y) * binsN + (x)]
+std::vector< std::list<particle_t*> > bins;
+int binsN, binsSize;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// METHOD PROTOTYPES FOR BINNING
+void buildBins(int n, particle_t* particles);
+void clearBins();
+void calcForce(int x, int y, std::list<particle_t*>::iterator iter, double* dmin, double* davg, int* navg);
+void applyBinForce(int x, int y, particle_t* currParticle, double* dmin, double* davg, int* navg);
+void moveParticles();
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// MAIN METHOD
+int main( int argc, char **argv )
+{  
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	int navg, nabsavg = 0;
+    double davg, dmin, absmin = 1.0, absavg = 0.0;
+
+    if( find_option(argc, argv, "-h" ) >= 0)
+    {
+        printf( "Options:\n" );
+        printf( "-h to see this help\n" );
+        printf( "-n <int> to set the number of particles\n" );
+        printf( "-o <filename> to specify the output file name\n" );
+        printf( "-s <filename> to specify a summary file name\n" );
+        printf( "-no turns off all correctness checks and particle output\n");
+        return 0;
+    }
+    
+    int n = read_int(argc, argv, "-n", 1000);
+
+    char* savename = read_string(argc, argv, "-o", NULL);
+    char* sumname = read_string(argc, argv, "-s", NULL);
+    
+    FILE* fsave = savename ? fopen(savename, "w") : NULL;
+    FILE* fsum = sumname ? fopen (sumname, "a") : NULL;
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	// initialize particles
+	particle_t* particles = (particle_t*) malloc(n * sizeof(particle_t));
+    set_size(n);
+    init_particles(n, particles);
+    
+    // simulate a number of time steps
+    double simulation_time = read_timer();
+	
+	// create bins that fit into the width of the world and are the width of the cutoff.
+	double worldWidth = get_size();
+	double binWidth = cutoff;
+	binsN = (int)ceil((worldWidth / binWidth));
+	binsSize = binsN * binsN;
+	
+	// create a bins vector that carries bins of particles (pointers to particles, that is)
+	bins.resize(binsSize);
+	buildBins(n, particles);
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+    for( int step = 0; step < NSTEPS; step++ )
+    {
+		navg = 0;
+        davg = 0.0;
+		dmin = 1.0;
+		
+        // compute forces by iterating over bins and particles in each bin
+        for(int x = 0; x < binsN; x++)
+			for(int y = 0; y < binsN; y++)
+				for(std::list<particle_t*>::iterator iter = B(x, y).begin(); iter != B(x, y).end(); iter++)
+					calcForce(x, y, iter, &dmin, &davg, &navg);
+ 
+        // move particles
+        moveParticles();
+		
+		// clear and rebuild the bins (particles may have moved to other bins)
+		clearBins();
+		buildBins(n, particles);
+		   
+		if( find_option( argc, argv, "-no" ) == -1 )
+		{
+			// computing statistical data
+			if (navg) 
+			{
+				absavg +=  davg/navg;
+				nabsavg++;
+			}
+
+			if (dmin < absmin) absmin = dmin;
+
+			//  save if necessary
+			if( fsave && (step%SAVEFREQ) == 0 )
+				save( fsave, n, particles );
+		}
+    }
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+    simulation_time = read_timer() - simulation_time;
+    
+    printf( "n = %d, simulation time = %g seconds", n, simulation_time);
+
+    if( find_option( argc, argv, "-no" ) == -1 )
+    {
+		if (nabsavg) absavg /= nabsavg;
+		//  -the minimum distance absmin between 2 particles during the run of the simulation
+		//  -A Correct simulation will have particles stay at greater than 0.4 (of cutoff) with typical values between .7-.8
+		//  -A simulation were particles don't interact correctly will be less than 0.4 (of cutoff) with typical values between .01-.05
+		//  -The average distance absavg is ~.95 when most particles are interacting correctly and ~.66 when no particles are interacting
+		printf( ", absmin = %lf, absavg = %lf", absmin, absavg);
+		if (absmin < 0.4) printf ("\nThe minimum distance is below 0.4 meaning that some particle is not interacting");
+		if (absavg < 0.8) printf ("\nThe average distance is below 0.8 meaning that most particles are not interacting");
+    }
+    printf("\n");     
+
+    // printing summary data
+    if(fsum) 
+        fprintf(fsum,"%d %g\n",n,simulation_time);
+ 
+    // clearing space
+    if(fsum)
+        fclose(fsum); 
+	
+	// releasing resources
+    free(particles);
+	bins.clear();
+	
+    if(fsave)
+    	fclose(fsave);
+    
+    return 0;
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// ===================================================================================================================
+// BUILDBINS()
+// -------------------------------------------------------------------------------------------------------------------
+// Populates the bins with particles. Since the particles already contain their exact coordinates, we only need to 
+// worry about which bin each particle belongs to. We can find what bin its in by multiplying by 100 since we found 
+// the number of bins by dividing the width of the world by 0.01, or multiplying by 100.
+// ===================================================================================================================
+void buildBins(int n, particle_t* particles)
+{
+	for(int p = 0; p < n; p++)
+	{
+		int x = (int)(particles[p].x  * 100);
+		int y = (int)(particles[p].y  * 100);
+		B(x,y).push_back(&particles[p]);
+	}
+}
+
+// ===================================================================================================================
+// CLEARBINS()
+// -------------------------------------------------------------------------------------------------------------------
+// Clear all particles from each bin.
+// ===================================================================================================================
+void clearBins()
+{
+	// iterate over bins and particles in each bin
+	for(int b = 0; b < binsSize; b++)
+		bins[b].clear();
+}
+
+// ===================================================================================================================
+// CALCFORCE()
+// -------------------------------------------------------------------------------------------------------------------
+// Applies the force to a particle in the currently examined bin from its own bin and bins immediately surrounding it.
+// ===================================================================================================================
+void calcForce(int x, int y, std::list<particle_t*>::iterator iter, double* dmin, double* davg, int* navg)
+{
+	particle_t* currParticle = (*iter);
+	currParticle->ax = currParticle->ay = 0;
+	
+	// Apply force from particles in current bin
+	applyBinForce(x, y, currParticle, dmin, davg, navg);
+	
+	// Apply force from particles in bins immediately surrounding the current bin
+	if(x < binsN - 1) 
+		applyBinForce(x + 1, y, currParticle, dmin, davg, navg); // RIGHT BIN: (if not in right-most column)
+	if(y > 0) 
+		applyBinForce(x, y - 1, currParticle, dmin, davg, navg); // BOTTOM BIN: (if not in the bottom row)
+	if(x > 0)
+		applyBinForce(x - 1, y, currParticle, dmin, davg, navg); // LEFT BIN: (if not in left-most column)
+	if(y < binsN - 1)
+		applyBinForce(x, y + 1, currParticle, dmin, davg, navg); // TOP BIN: (if not in the top row)
+	if(x < binsN - 1 && y < binsN - 1)
+		applyBinForce(x + 1, y + 1, currParticle, dmin, davg, navg); // TOP-RIGHT BIN: (if not in the top-right corner)
+	if(x < binsN - 1 && y > 0)
+		applyBinForce(x + 1, y - 1, currParticle, dmin, davg, navg); // BOTTOM-RIGHT BIN: (if not in the bottom-right corner)
+	if(x > 0 && y > 0)
+		applyBinForce(x - 1, y - 1, currParticle, dmin, davg, navg); // BOTTOM-LEFT BIN: (if not in the bottom-left corner)
+	if(x > 0 && y < binsN - 1)
+		applyBinForce(x - 1, y + 1, currParticle, dmin, davg, navg); // TOP-LEFT BIN: (if not in the top-left corner)
+}
+
+// ===================================================================================================================
+// APPLYBINFORCE()
+// -------------------------------------------------------------------------------------------------------------------
+// Applies the force to all particles within the given bin.
+// ===================================================================================================================
+void applyBinForce(int x, int y, particle_t* currParticle, double* dmin, double* davg, int* navg)
+{	
+	for(std::list<particle_t*>::iterator iter = B(x, y).begin(); iter != B(x,y).end(); iter++)
+	{
+		if( (*iter) != currParticle )
+			apply_force(*currParticle, **iter, dmin, davg, navg);
+	}
+}
+
+// ===================================================================================================================
+// MOVEPARTICLES()
+// -------------------------------------------------------------------------------------------------------------------
+// Iterates over the bins to move the particles.
+// ===================================================================================================================
+void moveParticles()
+{
+	for(int x = 0; x < binsN; x++)
+		for(int y = 0; y < binsN; y++)
+			for(std::list<particle_t*>::iterator iter = B(x, y).begin(); iter != B(x, y).end(); iter++)
+				move(**iter);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
